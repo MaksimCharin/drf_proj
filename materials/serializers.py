@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from materials.models import Course, Lesson
+from materials.validators import LinkValidator
 
 class LessonShortSerializer(serializers.ModelSerializer):
     class Meta:
@@ -10,6 +11,7 @@ class LessonDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lesson
         fields = '__all__'
+        validators = [LinkValidator(field='video_link')]
 
 class CourseSerializer(serializers.ModelSerializer):
     lessons_count = serializers.SerializerMethodField()
