@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404
 from materials.models import Course, Lesson, Subscription
 from materials.serializers import CourseSerializer, LessonDetailSerializer
 from materials.permissions import IsModerator, IsOwner
+from materials.paginators import MaterialPaginator
 
 
 # ViewSet (курс)
@@ -17,6 +18,8 @@ class CourseViewSet(ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = (IsAuthenticated,)
+    pagination_class = MaterialPaginator
+
 
     def get_permissions(self):
         if self.action == 'create':
@@ -54,6 +57,8 @@ class LessonListAPIView(ListAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonDetailSerializer
     permission_classes = (IsAuthenticated,)
+    pagination_class = MaterialPaginator
+
 
     def get_queryset(self):
         user = self.request.user
