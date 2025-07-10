@@ -15,11 +15,10 @@ from materials.paginators import MaterialPaginator
 
 # ViewSet (курс)
 class CourseViewSet(ModelViewSet):
-    queryset = Course.objects.all()
+    queryset = Course.objects.all().order_by('pk')
     serializer_class = CourseSerializer
     permission_classes = (IsAuthenticated,)
     pagination_class = MaterialPaginator
-
 
     def get_permissions(self):
         if self.action == 'create':
@@ -39,8 +38,8 @@ class CourseViewSet(ModelViewSet):
             return Course.objects.none()
 
         if user.groups.filter(name='Модераторы').exists():
-            return Course.objects.all()
-        return Course.objects.filter(owner=user)
+            return Course.objects.all().order_by('pk')
+        return Course.objects.filter(owner=user).order_by('pk')
 
 
 # Generics (уроки)
@@ -54,11 +53,10 @@ class LessonCreateAPIView(CreateAPIView):
 
 
 class LessonListAPIView(ListAPIView):
-    queryset = Lesson.objects.all()
+    queryset = Lesson.objects.all().order_by('pk')
     serializer_class = LessonDetailSerializer
     permission_classes = (IsAuthenticated,)
     pagination_class = MaterialPaginator
-
 
     def get_queryset(self):
         user = self.request.user
@@ -66,8 +64,8 @@ class LessonListAPIView(ListAPIView):
             return Lesson.objects.none()
 
         if user.groups.filter(name='Модераторы').exists():
-            return Lesson.objects.all()
-        return Lesson.objects.filter(owner=user)
+            return Lesson.objects.all().order_by('pk')
+        return Lesson.objects.filter(owner=user).order_by('pk')
 
 
 class LessonRetrieveAPIView(RetrieveAPIView):
