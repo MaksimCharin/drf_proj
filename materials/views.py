@@ -3,19 +3,22 @@ from rest_framework.generics import (CreateAPIView, DestroyAPIView,
                                      UpdateAPIView)
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
 
-
-from materials.models import Course, Lesson
+from materials.models import Course, Lesson, Subscription
 from materials.serializers import CourseSerializer, LessonDetailSerializer
 from materials.permissions import IsModerator, IsOwner
-
+from materials.paginators import MaterialPaginator
 
 
 # ViewSet (курс)
 class CourseViewSet(ModelViewSet):
-    queryset = Course.objects.all()
+    queryset = Course.objects.all().order_by('pk')
     serializer_class = CourseSerializer
     permission_classes = (IsAuthenticated,)
+    pagination_class = MaterialPaginator
 
     def get_permissions(self):
         if self.action == 'create':
@@ -35,8 +38,8 @@ class CourseViewSet(ModelViewSet):
             return Course.objects.none()
 
         if user.groups.filter(name='Модераторы').exists():
-            return Course.objects.all()
-        return Course.objects.filter(owner=user)
+            return Course.objects.all().order_by('pk')
+        return Course.objects.filter(owner=user).order_by('pk')
 
 
 # Generics (уроки)
@@ -48,10 +51,12 @@ class LessonCreateAPIView(CreateAPIView):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
+
 class LessonListAPIView(ListAPIView):
-    queryset = Lesson.objects.all()
+    queryset = Lesson.objects.all().order_by('pk')
     serializer_class = LessonDetailSerializer
     permission_classes = (IsAuthenticated,)
+    pagination_class = MaterialPaginator
 
     def get_queryset(self):
         user = self.request.user
@@ -59,20 +64,46 @@ class LessonListAPIView(ListAPIView):
             return Lesson.objects.none()
 
         if user.groups.filter(name='Модераторы').exists():
-            return Lesson.objects.all()
-        return Lesson.objects.filter(owner=user)
+            return Lesson.objects.all().order_by('pk')
+        return Lesson.objects.filter(owner=user).order_by('pk')
+
 
 class LessonRetrieveAPIView(RetrieveAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonDetailSerializer
     permission_classes = (IsAuthenticated, IsModerator | IsOwner)
 
+
 class LessonUpdateAPIView(UpdateAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonDetailSerializer
     permission_classes = (IsAuthenticated, IsModerator | IsOwner)
 
+
 class LessonDestroyAPIView(DestroyAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonDetailSerializer
     permission_classes = (IsAuthenticated, IsOwner)
+
+
+class SubscriptionAPIView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, *args, **kwargs):
+        user = self.request.user
+        course_id = self.request.data.get('course_id')
+
+        if not course_id:
+            return Response({"errors": {"course_id": "Не указан ID курса."}}, status=400)
+
+        course_item = get_object_or_404(Course, pk=course_id)
+        subs_item = Subscription.objects.filter(user=user, course=course_item)
+
+        if subs_item.exists():
+            subs_item.delete()
+            message = 'Подписка удалена.'
+        else:
+            Subscription.objects.create(user=user, course=course_item)
+            message = 'Подписка добавлена.'
+
+        return Response({"message": message})
