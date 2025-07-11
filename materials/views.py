@@ -94,7 +94,7 @@ class SubscriptionAPIView(APIView):
         course_id = self.request.data.get('course_id')
 
         if not course_id:
-            return Response({"error": "Не указан ID курса."}, status=400)
+            return Response({"errors": {"course_id": "Не указан ID курса."}}, status=400)
 
         course_item = get_object_or_404(Course, pk=course_id)
         subs_item = Subscription.objects.filter(user=user, course=course_item)
