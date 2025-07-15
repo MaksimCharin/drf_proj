@@ -64,3 +64,23 @@ class Payment(models.Model):
     class Meta:
         verbose_name = 'платеж'
         verbose_name_plural = 'платежи'
+
+
+class StripeProductPrice(models.Model):
+    course = models.OneToOneField(Course, on_delete=models.CASCADE, null=True, blank=True,
+                                  related_name='stripe_details', verbose_name='курс')
+    lesson = models.OneToOneField(Lesson, on_delete=models.CASCADE, null=True, blank=True,
+                                  related_name='stripe_details', verbose_name='урок')
+    stripe_product_id = models.CharField(max_length=255, verbose_name="ID продукта Stripe")
+    stripe_price_id = models.CharField(max_length=255, verbose_name="ID цены Stripe")
+
+    class Meta:
+        verbose_name = 'Stripe Продукт/Цена'
+        verbose_name_plural = 'Stripe Продукты/Цены'
+
+    def __str__(self):
+        if self.course:
+            return f"Stripe для курса: {self.course.name}"
+        elif self.lesson:
+            return f"Stripe для урока: {self.lesson.name}"
+        return "Stripe Product/Price (без привязки)"
