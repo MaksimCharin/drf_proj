@@ -4,6 +4,7 @@ from rest_framework.generics import (CreateAPIView, DestroyAPIView,
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework import status
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 
@@ -11,6 +12,7 @@ from materials.models import Course, Lesson, Subscription
 from materials.serializers import CourseSerializer, LessonDetailSerializer
 from materials.permissions import IsModerator, IsOwner
 from materials.paginators import MaterialPaginator
+from materials.tasks import send_course_update_notification
 
 
 # ViewSet (курс)
@@ -31,6 +33,10 @@ class CourseViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        send_course_update_notification.delay(serializer.instance.id)
 
     def get_queryset(self):
         user = self.request.user
@@ -94,7 +100,7 @@ class SubscriptionAPIView(APIView):
         course_id = self.request.data.get('course_id')
 
         if not course_id:
-            return Response({"errors": {"course_id": "Не указан ID курса."}}, status=400)
+            return Response({"errors": {"course_id": "Не указан ID курса."}}, status=status.HTTP_400_BAD_REQUEST)
 
         course_item = get_object_or_404(Course, pk=course_id)
         subs_item = Subscription.objects.filter(user=user, course=course_item)
@@ -107,3 +113,12 @@ class SubscriptionAPIView(APIView):
             message = 'Подписка добавлена.'
 
         return Response({"message": message})
+
+
+class PaymentSuccessView(APIView):
+    def get(self, request, *args, **kwargs):
+        return Response({"message": "Оплата успешно завершена!"})
+
+class PaymentCancelView(APIView):
+    def get(self, request, *args, **kwargs):
+        return Response({"message": "Оплата отменена."})
